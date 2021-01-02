@@ -1,4 +1,4 @@
-from brt import *
+from core.brt import *
 from urllib import request
 import csv
 import os,sys

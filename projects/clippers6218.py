@@ -3,7 +3,9 @@ from os import listdir
 import csv
 from collections import defaultdict
 
-clipspath20 = PurePath('data', 'BRK', 'season', '2020', 'pbp')
+# The Clippers were down 62-18! Has anyone else even come close to that score?
+
+clipspath20 = PurePath('..', 'core', 'data', 'BRK', 'season', '2020', 'pbp')
 games20 = listdir(clipspath20)
 scorelist1 = defaultdict(int)
 csvf = open('clippers6218.csv', 'w')

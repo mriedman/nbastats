@@ -87,6 +87,8 @@ def pbp1(x0, v=0):
             return ['1','FT','1','1','technical']
         elif x[:3]=='fla':
             return ['1','FT',x[-6],x[-1], 'flagrant']
+        elif x[:7] == 'no shot':
+            return ['1','FT','1','1','unknown']
         else:
             print(x)
             raise ValueError('Weird shot type')
@@ -362,7 +364,7 @@ def binpbp(x0, pnumlist, ishome):
 a=[]
 for i0 in range(16):
     # g1.szns['2020'][i0].gpbp()
-    gbxsc=g1.seasons['2020'][i0].pbp.pbp
+    gbxsc=g1.seasons['2020'][i0].pbp()
     print(gbxsc)
     a1=[]
     for i in gbxsc['Play-By-Play Table']:
