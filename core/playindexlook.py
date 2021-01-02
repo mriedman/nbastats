@@ -1,136 +1,14 @@
-full = ['GSW']
 from time import time
-from typing import Tuple, Callable
+from typing import Tuple, Callable, List, Any, Dict, Union
 from collections import defaultdict
 from pathlib import PurePath
 import os
 import csv
 from core.teamcodes import abbrtocode
+from core.itemselects import *
+from core.psl import PlayerStatLine
 
 t = time()
-
-
-class PlayerStatLine(object):
-    '''class FGpct(object):
-        def __init__(self, fgm, fga, fgpct):
-            self.fgm=fgm
-            self.fga=fga
-            self.fgpct=fgpct'''
-
-    def __init__(self, binstats, gamehead, is_start):
-        self.stats = binstats
-        self.game = gamehead
-        self.is_start = is_start
-        self.str_to_func = {'name': self.name, 'date': self.date, 'MP': self.MP, 'FG': self.FG, 'FGMI': self.FGMI,
-                            'FGA': self.FGA, 'FG%': self.FGpct, '2P': self.TwoP, '2PMI': self.TwoPMI, '2PA': self.TwoPA,
-                            '2P%': self.TwoPpct, '3P': self.ThrP, '3PMI': self.ThrPMI, '3PA': self.ThrPA,
-                            '3P%': self.ThrPpct, 'FT': self.FT, 'FTMI': self.FTMI, 'FTA': self.FTA, 'FT%': self.FTpct,
-                            'ORB': self.ORB, 'DRB': self.DRB, 'TRB': self.TRB, 'AST': self.AST, 'STL': self.STL,
-                            'BLK': self.BLK, 'TOV': self.TOV, 'PF': self.PF, 'PTS': self.PTS, '+/-': self.PM}
-
-    def name(self):
-        if self.stats[1] < 64:
-            pass
-        return self.stats[1]
-
-    def date(self):
-        return bytes(self.game[1:9]).decode('ascii')
-
-    '''def age(self):
-        # QQQQQQQQQQQQ
-        return 0'''
-
-    def GS(self):
-        return self.is_start
-
-    def MP(self):
-        return self.stats[2] + self.stats[3] / 60
-
-    def FG(self):
-        return self.stats[4]
-
-    def FGMI(self):
-        return self.stats[5] - self.stats[4]
-
-    def FGA(self):
-        return self.stats[5]
-
-    def FGpct(self):
-        if self.stats[5] == 0:
-            return 0
-        return self.stats[4] / self.stats[5]
-
-    def TwoP(self):
-        return self.stats[4] - self.stats[7]
-
-    def TwoPMI(self):
-        return self.TwoPA() - self.TwoP()
-
-    def TwoPA(self):
-        return self.stats[13] - self.stats[16]
-
-    def TwoPpct(self):
-        if self.TwoPA() == 0:
-            return 0
-        return self.TwoP() / self.TwoPA()
-
-    def ThrP(self):
-        return self.stats[7]
-
-    def ThrPMI(self):
-        return self.ThrPA() - self.ThrP()
-
-    def ThrPA(self):
-        return self.stats[8]
-
-    def ThrPpct(self):
-        if self.ThrPA() == 0:
-            return 0
-        return self.ThrP() / self.ThrPA()
-
-    def FT(self):
-        return self.stats[10]
-
-    def FTMI(self):
-        return self.FTA() - self.FTA()
-
-    def FTA(self):
-        return self.stats[11]
-
-    def FTpct(self):
-        if self.FTA() == 0:
-            return 0
-        return self.FT() / self.FTA()
-
-    def ORB(self):
-        return self.stats[13]
-
-    def DRB(self):
-        return self.stats[14]
-
-    def TRB(self):
-        return self.stats[15]
-
-    def AST(self):
-        return self.stats[16]
-
-    def STL(self):
-        return self.stats[17]
-
-    def BLK(self):
-        return self.stats[18]
-
-    def TOV(self):
-        return self.stats[19]
-
-    def PF(self):
-        return self.stats[20]
-
-    def PTS(self):
-        return self.stats[21]
-
-    def PM(self):
-        return self.stats[22]
 
 def getpnum(tm: str, yr: str):
     path = PurePath('..', 'core', 'data', abbrtocode[tm], 'season', yr)
@@ -200,8 +78,8 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
     for gamefile in os.listdir(teampath):
         f = open(teampath / gamefile, 'rb')
         ct = 0
-        date = 0
-        psl = PlayerStatLine([], [], 0)
+        gameobj = GameHead(b'', ownpnumlist, opppnumlist)
+        psl = PlayerStatLine([], gameobj, 0)
         gamenum = defaultdict(int)
         if sortbydir not in ('a', 'd'):
             raise ValueError('sortbydir invalid: should be "a" or "d", is ' + sortbydir)
@@ -215,12 +93,11 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
                 f.seek(ct)
                 g0 = [i for i in f.read(1)][0]
                 if g0 == 1:
-                    game = [1] + [i for i in f.read(27)]
+                    game = gameobj
+                    game.game = [1] + [i for i in f.read(27)]
                     ct += 26
-                    psl.game = game
-                    date = bytes(game[1:9]).decode('ascii')
-                    opptm = bytes(game[13:16]).decode('ascii')
-                    opppnumlist = getpnum(opptm, yr)
+                    opppnumlist = getpnum(game.tm2(), yr)
+                    psl.game.pnum2 = opppnumlist
                     gamenum['team'] += 1
                     p_num = 0
                     continue
@@ -240,7 +117,7 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
                     elif gamenumtype == 'plszn' and not gamenumrange[0] <= gamenum[psl.name()] <= gamenumrange[1]:
                         continue
                     if all(i(psl) for i in catfunclist):
-                        l.append([dec(game, date, ownpnumlist, opppnumlist), game, psl.game])
+                        l.append([decplayerline(game, psl.game), game, psl.game])
                 elif g0 == 3:
                     ct += 1
                 else:
@@ -260,33 +137,10 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
     return [i[0] for i in l1]
 
 
-def dec(l, date, pl1, pl2):
-    l1 = []
-    if l[1] < 128:
-        l1.append(pl1[l[1]][0])
-    else:
-        l1.append(pl2[l[1] - 128][0])
-    l1.append(date)
-    l1.append(str(l[2]) + ':' + '0'*(2-len(str(l[3]))) + str(l[3]))
-    for i in range(4, 23):
-        if i in [6, 9, 12]:
-            if l[i - 1] == 0:
-                l1.append(0)
-            else:
-                l1.append(round(l[i - 2] / l[i - 1],3))
-        elif i == 22:
-            l1.append(l[i] - 128)
-        elif l[i] == 255:
-            l1.append('')
-        else:
-            l1.append(l[i])
-    return l1
 
-def f1(psl: PlayerStatLine) -> bool:
-    return psl.FGpct() == 1 and psl.FGA() >= 2
 
-for i in lookup(catfunclist= \
-                        (lambda x: x.MP() > 0,
-                         lambda x: x.PTS() > 30),
-        sortbydir='d'):
-    print(i)
+
+
+playerselect = None
+
+
