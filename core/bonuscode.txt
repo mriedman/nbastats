@@ -1,0 +1,81 @@
+# Old code for multithreading
+        '''pool = ThreadPool(48)
+        semaphore = Semaphore(4)
+        for game in gamelist:
+            ''pool.apply_async(Season.gamefromgameobj,
+                             (game, boxscore, pbp, tm2, year, self.nspath, copy(self.ownpnumlist), semaphore)
+                             )''
+            game.gamefromgameobj(boxscore, pbp, year, self.nspath, copy(self.ownpnumlist))
+            if not game.bxbool:
+                pool.apply_async(game.bxsc)
+            if not game.pbpbool:
+                pool.apply_async(game.pbp)
+        pool.close()
+        pool.join()
+        for game in gamelist:
+            if not game.bxbool:
+                self.writebxsc(game, tm2)
+            if not game.pbpbool:
+                self.writepbp(game)'''
+
+                @staticmethod
+    def gamefromgameobj(game, boxscore, pbp, tm2, year, nspath, pnumlist, semaphore: Semaphore = None):
+        # All copied into Game.gamefromgameobj so probably irrelevant
+        '''print('Made it!')
+        pbppath = nspath / 'pbp' / (game.loginfo[6].split('/')[-1][:-8] + '.txt')
+        bxscpath = nspath / 'boxscores' / (game.loginfo[6].split('/')[-1][:-8] + '.txt')
+        bxbool = (not boxscore) or os.path.isfile(bxscpath)
+        pbpbool = (not pbp) or os.path.isfile(pbppath)
+        if bxbool and pbpbool:
+            return
+        opppath = PurePath('..', 'core', 'data', abbrtocode[game.loginfo[-2]], 'season', year)
+        # Doesn't work unless opponent is initialized first
+        with open(opppath / 'players' / 'playerlist.csv') as csvf:
+            csvr = csv.reader(csvf)
+            for row in csvr:
+                pnumlist[row[2]] = [128 + int(row[0]), row[1]]
+        pnumlist['team1'] = [65, game.loginfo[-1]]
+        pnumlist['team2'] = [193, game.loginfo[-2]]
+        pnumlist['official'] = [67, 'Official']
+        pnumlist['NONE'] = [68, '']'''
+        pass
+
+'''for game in gl[1:]:  # QQQQQQQQQQ only first 3 games
+                i = game.split("</tr>")[0]
+                i1 = i.split('</td>')
+                i2 = [j.replace('</a>', '').split('>')[-1] for j in i1]
+                i2.append((game.split('="box_score_text" ><a href="')[1].split('">')[0]))
+                i2.append((game.split('href="/teams/')[1].split('/')[0]))
+                gamelist1.append(Game(i2 + [self.team], self, self.bxpath / i2[15].split('/')[-1][:-5], self.year))
+                raise ValueError'''
+
+            '''print("https://www.basketball-reference.com/boxscores/" + self.game.loginfo[6][
+                                                                  11:] == "https://www.basketball-reference.com" +
+              self.game.loginfo[6])'''
+
+class PBP(object):
+    def __init__(self, game: Game):
+        self.game = game
+        if os.path.isfile(game.gamedir / 'pbp.txt'):
+            pass
+        print("https://www.basketball-reference.com" + self.game.loginfo[6])
+        s = request.urlopen("https://www.basketball-reference.com/boxscores/pbp/" + self.game.loginfo[6][11:],
+                            context=ctx)
+        t = str(s.read())
+        self.pbp = get_table(t, mode='PBP')
+
+class BoxScore(object):
+    def __init__(self, game: Game):
+        self.game = game
+        if os.path.isfile(game.gamedir / 'boxscore.csv'):
+            pass
+        s = request.urlopen("https://www.basketball-reference.com" + self.game.loginfo[6], context=ctx)
+        t = str(s.read())
+        self.bxsc = get_table(t, mode='Link')
+
+            if '(' in x or True:
+                return foul(x)
+            else:
+                # print([x[x.index('foul')+8:],'foul',x[:x.index('foul')-1]])
+                # Doesn't work for double personals (Double personal foul by L. Scola and J. Noah)
+                return [getplayer(x[x.index('foul') + 8:]), 'foul', x[:x.index('foul') - 1]]

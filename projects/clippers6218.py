@@ -5,12 +5,14 @@ from collections import defaultdict
 
 # The Clippers were down 62-18! Has anyone else even come close to that score?
 
-clipspath20 = PurePath('..', 'core', 'data', 'BRK', 'season', '2020', 'pbp')
+clipspath20 = PurePath('..', 'core', 'data', 'POR', 'season', '1998', 'pbp')
 games20 = listdir(clipspath20)
 scorelist1 = defaultdict(int)
 csvf = open('clippers6218.csv', 'w')
 csvw = csv.writer(csvf)
 for filename in games20:
+    if filename == '.DS_Store':
+        continue
     if not filename == '202012270.txt':
         pass
     gamefile = open(clipspath20 / filename, mode='rb')

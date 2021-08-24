@@ -5,11 +5,11 @@ import ssl
 import csv
 import os
 from pathlib import PurePath
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Tuple
 from core.getpbpdata import *
 from copy import copy
 from core.teamcodes import *
-from io import BytesIO
+import concurrent.futures
 
 ctx = ssl.create_default_context()
 ctx.check_hostname = False
@@ -26,23 +26,23 @@ class Team(object):
             if not i == '.DS_Store':
                 self.seasons[i] = Season(self, i)'''
 
-    def newseason(self, yr):
-        szn = Season(self, yr)
+    def newseason(self, yr, force=False):
+        szn = Season(self, yr, force)
         self.seasons[yr] = szn
 
 
 class Season(object):
-    def __init__(self, team: Team, yr: str):
+    def __init__(self, team: Team, yr: str, force: bool = False):
         self.teamobj = team
-        self.team = team.team
+        self.team = nameyears[team.team][yr]
         self.dirpath = team.dirpath
         self.year = yr
         self.gamelist = []
         print('data/' + self.team + '/season/' + yr)
         self.nspath = self.dirpath / str(self.year)
-        self.tm2 = abbrtoname[nameyears[self.team][yr]]
+        self.tm2 = abbrtoname[self.team]
         print(self.tm2)
-        if os.path.isfile(self.nspath / 'gs.csv'):
+        if os.path.isfile(self.nspath / 'gs.csv') and not force:
             with open(self.nspath / 'gs.csv') as csvf0:
                 csvf = csv.reader(csvf0)
                 for row in csvf:
@@ -50,31 +50,27 @@ class Season(object):
         else:
             # Add full-season player data
             plpath = self.dirpath / str(self.year) / 'players'
-            os.makedirs(plpath)
+            if not os.path.isdir(plpath):
+                os.makedirs(plpath)
+            print(self.team)
             g1 = str(
-                request.urlopen("https://www.basketball-reference.com/teams/" + self.team + "/" + str(self.year) + '.html',
-                                context=ctx).read(), encoding='utf-8')
+                request.urlopen(
+                    "https://www.basketball-reference.com/teams/" + self.team + "/" + str(self.year) + '.html',
+                    context=ctx).read(), encoding='utf-8')
             '''t1 = get_table(g1)
             for i in t1:
                 with open(plpath / (i + '.csv'), mode='w') as csvf:
                     csvw = csv.writer(csvf)
                     for j in t1[i]:
                         csvw.writerow(j)'''
-            t2 = get_table(g1, mode='Link')
+            t2 = get_table_by_id(g1, mode='Link')
             with open(plpath / 'playerlist.csv', mode='w') as csvf:
-                csvw = csv.writer(csvf)
-                ct = 0
-                for row in t2['Per Game Table']:
-                    if ct == 0:  # Header
-                        ct += 1
-                        continue
-                    print(row)
-                    l = [ct, row[1], row[2].split('/')[-1].split('.html')[0]]
-                    csvw.writerow(l)
-                    ct += 1
+                self.write_playerlist_to_file(csvf, t2)
+
             # Retrieve game logs
             s = request.urlopen(
-                "https://www.basketball-reference.com/teams/" + self.team + "/" + str(self.year) + "_games.html", context=ctx)
+                "https://www.basketball-reference.com/teams/" + self.team + "/" + str(self.year) + "_games.html",
+                context=ctx)
             t = s.read()
             g = str(t)
             gl1 = get_table(g, mode='Link')
@@ -86,6 +82,7 @@ class Season(object):
             self.bxpath = self.nspath / 'boxscores'
             os.makedirs(self.bxpath, exist_ok=True)
             print(gl1.keys())
+
             for game in gl1['Regular Season Table']:
                 if game[0] == 'G':
                     continue
@@ -103,14 +100,6 @@ class Season(object):
                     loginfo = game + [1, game[9].split('/')[2], self.team]
                     gamelist1.append(Game(loginfo, self.year, ))
             self.gamelist = gamelist1
-            '''for game in gl[1:]:  # QQQQQQQQQQ only first 3 games
-                i = game.split("</tr>")[0]
-                i1 = i.split('</td>')
-                i2 = [j.replace('</a>', '').split('>')[-1] for j in i1]
-                i2.append((game.split('="box_score_text" ><a href="')[1].split('">')[0]))
-                i2.append((game.split('href="/teams/')[1].split('/')[0]))
-                gamelist1.append(Game(i2 + [self.team], self, self.bxpath / i2[15].split('/')[-1][:-5], self.year))
-                raise ValueError'''
             if not os.path.isfile(self.nspath / 'gs.csv'):
                 with open(self.nspath / 'gs.csv', mode='w') as csvf:
                     csvw = csv.writer(csvf)
@@ -123,7 +112,38 @@ class Season(object):
         with open(self.nspath / 'players' / 'playerlist.csv') as csvf:
             csvr = csv.reader(csvf)
             for row in csvr:
-                self.ownpnumlist[row[2]] = [int(row[0]), row[1]]
+                self.ownpnumlist[row[2], True] = [int(row[0]), row[1]]
+
+    @staticmethod
+    def get_id_from_url(url):
+        return url.split('/')[-1].split('.html')[0]
+
+    @staticmethod
+    def write_playerlist_to_file(csvf, tables):
+        csvw = csv.writer(csvf)
+        players = []
+        count = 0
+        for row in tables['per_game']:
+            if count == 0:  # Header
+                count += 1
+                continue
+            print(row)
+            l = [count, row[1], Season.get_id_from_url(row[2])]
+            csvw.writerow(l)
+            count += 1
+            players.append(row[2])
+        if 'playoffs_per_game' in tables:
+            for row in tables['playoffs_per_game']:
+                if row[2] in players:
+                    continue
+                if count == 0:  # Header
+                    count += 1
+                    continue
+                print(row)
+                l = [count, row[1], Season.get_id_from_url(row[2])]
+                csvw.writerow(l)
+                count += 1
+
     @staticmethod
     def getgameheader(loginfo: List[str]) -> List[int]:
         """
@@ -171,9 +191,10 @@ class Season(object):
             try:
                 _gameheader.append(int(i))
             except ValueError:
-                print('Point total\'s weird...')
+                print('Game has not happened yet:')
                 print(loginfo)
                 _gameheader.append(255)
+                return
         if loginfo[11] == '':
             _gameheader.append(0)
         elif loginfo[11] == 'OT':
@@ -183,157 +204,159 @@ class Season(object):
         else:
             print('Issue with number of OTs...')
             print(loginfo)
-        _gameheader.append(0)  # QQQQQQQ should be IS_PLAYOFFS
+        _gameheader.append(int(loginfo[-3]))
         # gameheader += [255] * (31 - len(gameheader))
         return _gameheader
 
-    def write_game(self):
-        gamelist = self.gamelist
+    def write_game(self, boxscore=True, pbp=True, force=False):
         tm2 = self.tm2
-        team = self.team
         year = self.year
 
-        for game in gamelist:
-            pbppath = self.nspath / 'pbp' / (game.loginfo[6].split('/')[-1][:-8] + '.txt')
-            bxscpath = self.nspath / 'boxscores' / (game.loginfo[6].split('/')[-1][:-8] + '.txt')
-            if os.path.isfile(pbppath) and os.path.isfile(bxscpath):
-                continue
-            pnumlist = copy(self.ownpnumlist)
-            opppath = PurePath('..', 'core', 'data', game.loginfo[-2], 'season', year)
-            # Doesn't work unless opponent is initialized first
-            with open(opppath / 'players' / 'playerlist.csv') as csvf:
-                csvr = csv.reader(csvf)
-                for row in csvr:
-                    pnumlist[row[2]] = [128 + int(row[0]), row[1]]
-            pnumlist['team1'] = [65, game.loginfo[-1]]
-            pnumlist['team2'] = [193, game.loginfo[-2]]
-            pnumlist['official'] = [67, 'Official']
-            pnumlist['NONE'] = [68, '']
+        for game in self.gamelist:
+            game.gamefromgameobj(boxscore, pbp, year, self.nspath, copy(self.ownpnumlist), force)
 
-            gameheader = self.getgameheader(game.loginfo)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
+            # Start the load operations and mark each future with its URL
+            future_to_day = {}
+            future_to_day.update(
+                {executor.submit(game.bxsc): (game, 'bx') for game in self.gamelist if not game.bxbool})
+            future_to_day.update(
+                {executor.submit(game.pbp): (game, 'pbp') for game in self.gamelist if not game.pbpbool})
+            for future in concurrent.futures.as_completed(future_to_day):
+                print('A')
+                game, t = future_to_day[future]
+                try:
+                    data = future.result()
+                except Exception as exc:
+                    print('%r and %s generated an exception: %s' % (game, t, exc))
+                else:
+                    if t == 'bx':
+                        self.writebxsc(game, tm2)
+                    elif t == 'pbp':
+                        self.writepbp(game)
 
-            '''
-            for j in Gamebxsc[tmbx] + [-1] + gamebxsc[opptmbx]:
-                if j == -1:
-                    bxscf.write(bytes(3))
-                    continue
-                g2 = [0]
-                if len(j) < 15 or j[1] == 'MP' or j[0] == 'Team Totals':
-                    continue
-                for k in range(len(j)):
-                    if k == 0:
-                        continue
-                    if k == 1:
-                        # Add player ID-associated pnumlist byte (e.g. duranke01)
-                        k1 = j[k].split('/')[-1][:-5]
-                        ''''''k2 = [ord(l) for l in k1]
-                        while len(k2) < 9:
-                            k2.append(255)
-                        g2 += k2''''''
-                        g2.append(pnumlist[k1][0])
-                    elif k == 2:
-                        # MP ([Minutes, Seconds])
-                        g2 += [int(i) for i in j[k].split(':')]
-                    elif j[k] == '':
-                        # 255 for null values
-                        g2.append(255)
-                    elif k in [5, 8, 11]:
-                        # Shooting %ages
-                        g2.append(int(254 * float(j[k])))
-                    elif k == 21:
-                        # +/-
-                        g2.append(int(j[k]) + 128)
-                    else:
-                        g2.append(int(j[k]))
-                bxscf.write(bytes(g2))'''
-            # bxscf = open(self.nspath / 'boxscores' / (game.loginfo[6].split('/')[-1][:-8] + '.txt'), 'wb')
-            if not os.path.isfile(bxscpath):
-                tmbx = ''
-                gamebxsc = game.bxsc()
-                for j in gamebxsc:
-                    if tm2 in j and j[len(tm2) + 2] != 'H' and j[len(tm2) + 2] != 'Q':
-                        # Full Game (not Half/Quarter)
-                        tmbx = j
-                tm3 = game.loginfo[8]
-                opptmbx = ''
-                for j in gamebxsc:
-                    if tm3 in j and j[len(tm3) + 2] != 'H' and j[len(tm3) + 2] != 'Q':
-                        # Full Game (not Half/Quarter)
-                        opptmbx = j
-                if tmbx == '' or opptmbx == '':
-                    print(game.loginfo)
-                    raise ValueError('Team or Other team\'s boxscore not found')
-                bxscf = open(bxscpath, 'wb')
-                bxscf.write(bytes(gameheader))
+    def writebxsc(self, game, tm2):
+        gamebxsc = get_table(game.bxsc0, mode='Link')
+        tmbx = ''
+        full_quarters = []
+        for j in gamebxsc:
+            if tm2 in j and j[len(tm2) + 2] != 'H' and j[len(tm2) + 2] != 'Q' and j[len(tm2) + 2] != 'O':
+                # Full Game (not Half/Quarter/OT)
+                tmbx = j
+            elif tm2 in j and j[len(tm2) + 2] == 'Q':
+                for k in gamebxsc[j]:
+                    if len(k) >= 3 and k[2] == '12:00':
+                        full_quarters.append(((self.get_id_from_url(k[1]), True), int(j[len(tm2) + 3])))
+            elif tm2 in j and j[len(tm2) + 2] == 'O':
+                for k in gamebxsc[j]:
+                    if len(k) >= 3 and k[2] == '5:00':
+                        # print(k)
+                        full_quarters.append(((self.get_id_from_url(k[1]), True), int(j[len(tm2) + 4]) + 4))
+        # print(full_quarters)
+        tm3 = game.loginfo[8]
+        opptmbx = ''
+        for j in gamebxsc:
+            if tm3 in j and j[len(tm3) + 2] != 'H' and j[len(tm3) + 2] != 'Q' and j[len(tm3) + 2] != 'O':
+                # Full Game (not Half/Quarter/OT)
+                opptmbx = j
+            # Opp tm full quarter (uncomment)
+            '''elif tm3 in j and j[len(tm3) + 2] == 'Q':
+                for k in gamebxsc[j]:
+                    if len(k) >= 3 and k[2] == '12:00':
+                        full_quarters.append(((self.get_id_from_url(k[1]), False), int(j[len(tm3) + 3])))
+            elif tm3 in j and j[len(tm3) + 2] == 'O':
+                for k in gamebxsc[j]:
+                    if len(k) >= 3 and k[2] == '5:00':
+                        # print(k)
+                        full_quarters.append(((self.get_id_from_url(k[1]), False), int(j[len(tm3) + 4]) + 4))'''
+        if tmbx == '' or opptmbx == '':
+            print(game.loginfo)
+            raise ValueError('Team or Other team\'s boxscore not found')
+        gameheader = Season.getgameheader(game.loginfo)
+        if gameheader is None:
+            return
+        bxscf = open(game.bxscpath, 'wb')
+        bxscf.write(bytes(gameheader))
 
-                bxscinfo = Game.binbxsc(gamebxsc[tmbx] + [-1] + gamebxsc[opptmbx], pnumlist)
-                bxscf.write(bytes(bxscinfo))
-                bxscf.close()
+        bxscinfo = Game.binbxsc(gamebxsc[tmbx] + [-1] + gamebxsc[opptmbx], full_quarters, game.pnumlist)
+        bxscf.write(bytes(bxscinfo))
 
-            if not os.path.isfile(pbppath):
-                pbpf = open(pbppath, 'wb')
-                pbpf.write(bytes(gameheader))
-                '''p_num = 128  # Used to assign player indices (now only opposing team)
-                for j in gamebxsc[opptmbx]:
-                    p_num += 1
-                    k1 = j[1].split('/')[-1][:-5]
-                    if k1 == '' or 'Basic Box' in k1:
-                        continue
-                    k2 = [ord(l) for l in k1]
-                    playhead = [2, p_num] + k2 + [255] * (9 - len(k2))
-                    pbpf.write(bytes(playhead))
-                    pnumlist[k1] = [p_num, j[0]]'''
-                for player in pnumlist:
-                    if pnumlist[player][0] >= 128:
-                        playhead = [2, pnumlist[player][0]] + [ord(i) for i in player] + [255] * (9 - len(player))
-                        pbpf.write(bytes(playhead))
+        bxscf.close()
 
-                pbpinfo = binpbp(game.pbp()['Play-By-Play Table'], pnumlist, game.loginfo[-2] == game.loginfo[6][-8:-5])
-                pbpf.write(bytes([254]))  # Separate header
-                pbpf.write(bytes(pbpinfo))
-                pbpf.close()
+    def writepbp(self, game):
+        gamepbp = game.pbp2()
+        pbpf = open(game.pbppath, 'wb')
+        gameheader = Season.getgameheader(game.loginfo)
+        pbpf.write(bytes(gameheader))
+        for player in game.pnumlist:
+            if game.pnumlist[player][0] >= 128:
+                playhead = [2, game.pnumlist[player][0]] + [ord(i) for i in player] + [255] * (9 - len(player))
+                pbpf.write(bytes(playhead))
+
+        # semaphore.release()
+        pbpinfo = binpbp(gamepbp['Play-By-Play Table'], game.pnumlist, game.loginfo[-2] == game.loginfo[6][-8:-5])
+        pbpf.write(bytes([254]))  # Separate header
+        pbpf.write(bytes(pbpinfo))
+        pbpf.close()
+        # semaphore.release()
+
 
 class Game(object):
-    '''def __init__(self, loginfo: List, seasonobj: Season, gamedir: PurePath, yr: str):
-        os.makedirs(gamedir, exist_ok=True)
-        print([loginfo, seasonobj, yr, str(gamedir)])
-        self.yr = yr
-        self.loginfo = loginfo
-        self.teamobj = seasonobj
-        self.gamedir = gamedir
-        self.pbp = PBP(self)
-        self.bxsc = BoxScore(self)'''
 
     def __init__(self, loginfo: List, yr: str):
-        # os.makedirs(gamedir, exist_ok=True)
         print([loginfo, yr])
         self.yr = yr
         self.loginfo = loginfo
-        # self.teamobj = seasonobj
-        # self.gamedir = gamedir
+        self.pbppath = ''
+        self.bxscpath = ''
+        self.pnumlist = {}
+        self.bxsc0 = None
+        self.pbp0 = None
 
     def pbp(self):
-        # if os.path.isfile(self.gamedir / 'pbp.txt'):
-        #    pass
         print("https://www.basketball-reference.com" + self.loginfo[6])
         s = request.urlopen("https://www.basketball-reference.com/boxscores/pbp/" + self.loginfo[6][11:],
                             context=ctx)
         t = str(s.read())
-        return get_table(t, mode='PBP')
+        self.pbp0 = t
+
+    def pbp2(self):
+        return get_table(self.pbp0, mode='PBP')
 
     def bxsc(self):
         # if os.path.isfile(self.gamedir / 'boxscore.csv'):
         #    return None
         s = request.urlopen("https://www.basketball-reference.com" + self.loginfo[6], context=ctx)
-        t = str(s.read())
-        return get_table(t, mode='Link')
+        self.bxsc0 = str(s.read())
+
+    def gamefromgameobj(self, boxscore, pbp, year, nspath, pnumlist, force=False):
+        # print('Made it!')
+        self.pbppath = nspath / 'pbp' / (self.loginfo[6].split('/')[-1][:-8] + '.txt')
+        self.bxscpath = nspath / 'boxscores' / (self.loginfo[6].split('/')[-1][:-8] + '.txt')
+        self.bxbool = (not boxscore) or (os.path.isfile(self.bxscpath) and not force)
+        self.pbpbool = (not pbp) or (os.path.isfile(self.pbppath) and not force)
+        if self.bxbool and self.pbpbool:
+            return
+        opppath = PurePath('..', 'core', 'data', abbrtocode[self.loginfo[-2]], 'season', year)
+        # Doesn't work unless opponent is initialized first
+        with open(opppath / 'players' / 'playerlist.csv') as csvf:
+            csvr = csv.reader(csvf)
+            for row in csvr:
+                pnumlist[row[2], False] = [128 + int(row[0]), row[1]]
+        pnumlist['team1', True] = [65, self.loginfo[-1]]
+        pnumlist['team2', False] = [193, self.loginfo[-2]]
+        pnumlist['official', True] = [67, 'Official']
+        pnumlist['NONE', True] = [68, '']
+        self.pnumlist = pnumlist
 
     @staticmethod
-    def binbxsc(gamebxsc: List, pnumlist: Dict[str, List[Union[int, str]]]):
-        fullbytes = []
+    def binbxsc(gamebxsc: List, full_quarters: List[Tuple], pnumlist: Dict[Tuple[str, bool], List[Union[int, str]]]):
+        full_bytes = []
+        home = True
         for j in gamebxsc:
             if j == -1:
-                fullbytes.append(3)
+                full_bytes.append(3)
+                home = False
                 continue
             g2 = [0]
             if len(j) < 15 or j[1] == 'MP' or j[0] == 'Team Totals':
@@ -348,7 +371,7 @@ class Game(object):
                     while len(k2) < 9:
                         k2.append(255)
                     g2 += k2'''
-                    g2.append(pnumlist[k1][0])
+                    g2.append(pnumlist[(k1, home)][0])
                 elif k == 2:
                     # MP ([Minutes, Seconds])
                     g2 += [int(i) for i in j[k].split(':')]
@@ -363,40 +386,14 @@ class Game(object):
                     g2.append(int(j[k]) + 128)
                 else:
                     g2.append(int(j[k]))
-            fullbytes += g2
-        return fullbytes
+            full_bytes += g2
+        full_bytes.append(4)
+        for player, quarter in full_quarters:
+            full_bytes += [5, pnumlist[player][0], quarter]
+        return full_bytes
 
     def __str__(self):
         l = self.loginfo
-        return l[-1] + (' vs ' if l[7] == '' else ' '+l[7]+' ') + l[-2] + ', ' + l[10] + ' ' + l[12] + '-' + l[13] + (
-            ', ' if l[11] == '' else ' (' + l[11] + '), ') + l[1] + ' at ' + l[3] + ', Record: ' + l[14] + '-' + l[
-                   15] + ', Streak: ' + l[16]
-
-
-class BoxScore(object):
-    def __init__(self, game: Game):
-        self.game = game
-        if os.path.isfile(game.gamedir / 'boxscore.csv'):
-            pass
-        s = request.urlopen("https://www.basketball-reference.com" + self.game.loginfo[6], context=ctx)
-        t = str(s.read())
-        self.bxsc = get_table(t, mode='Link')
-
-
-class PBP(object):
-    def __init__(self, game: Game):
-        self.game = game
-        if os.path.isfile(game.gamedir / 'pbp.txt'):
-            pass
-        print("https://www.basketball-reference.com" + self.game.loginfo[6])
-        '''print("https://www.basketball-reference.com/boxscores/" + self.game.loginfo[6][
-                                                                  11:] == "https://www.basketball-reference.com" +
-              self.game.loginfo[6])'''
-        # s = request.urlopen("https://www.basketball-reference.com/boxscores" + self.game.l[15][11:], context=ctx)
-        s = request.urlopen("https://www.basketball-reference.com/boxscores/pbp/" + self.game.loginfo[6][11:],
-                            context=ctx)
-        t = str(s.read())
-        self.pbp = get_table(t, mode='PBP')
-
-
-
+        return l[-1] + (' vs ' if l[7] == '' else ' ' + l[7] + ' ') + l[-2] + ', ' + l[10] + ' ' + l[12] + '-' + l[
+            13] + (', ' if l[11] == '' else ' (' + l[11] + '), ') + l[1] + ' at ' + l[3] + ', Record: ' + l[14] + '-' \
+            + l[15] + ', Streak: ' + l[16]

@@ -24,6 +24,9 @@ TYPE 2:
 TYPE 3:
     TYPE (3) [0]
     Indicates switch to opposing team
+TYPE 4:
+    TYPE (4) [0]
+    Indicates switch to full quarters (of form (pnumlist, qtr))
 
 NOTE ABOUT PNUMLIST:
     192 indicates the full player ID will be used

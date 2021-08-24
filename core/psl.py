@@ -64,6 +64,9 @@ class PlayerStatLine(object):
     def MP(self):
         return self.stats[2] + self.stats[3] / 60
 
+    def SecP(self):
+        return self.stats[2] * 60 + self.stats[3]
+
     def FG(self):
         return self.stats[4]
 

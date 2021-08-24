@@ -1,12 +1,11 @@
 from core.nbapbp import *
 from core.teamcodes import *
-def maketeam(tm, yrs):
-    pass
-'''for i in nameyears:
-    if '2020' in nameyears[i]:
-        a = Team(nameyears[i]['2020'])
-        a.newseason('2020')'''
-a = Team('BRK')
-a.newseason('2020')
-a.seasons['2020'].write_game()
+
+
+for i in nameyears:
+    if '2021' in nameyears[i] and i == 'CLE':
+        a = Team(i)
+        a.newseason('2021', force=True)
+        a.seasons['2021'].write_game(force=True)
+        exit(0)
 

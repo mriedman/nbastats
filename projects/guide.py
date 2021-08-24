@@ -1,5 +1,5 @@
-from brt import *
-from nbapbp import *
+from core.brt import *
+from core.nbapbp import *
 #Make GSW Team object
 g1=Team('GSW')
 '''#Add 2018-19 season (only works once)
