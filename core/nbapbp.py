@@ -214,6 +214,7 @@ class Season(object):
 
         for game in self.gamelist:
             game.gamefromgameobj(boxscore, pbp, year, self.nspath, copy(self.ownpnumlist), force)
+            print(game.pnumlist)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
             # Start the load operations and mark each future with its URL
@@ -290,7 +291,7 @@ class Season(object):
         pbpf.write(bytes(gameheader))
         for player in game.pnumlist:
             if game.pnumlist[player][0] >= 128:
-                playhead = [2, game.pnumlist[player][0]] + [ord(i) for i in player] + [255] * (9 - len(player))
+                playhead = [2, game.pnumlist[player][0]] + [ord(i) for i in player[0]] + [255] * (9 - len(player))
                 pbpf.write(bytes(playhead))
 
         # semaphore.release()
@@ -343,10 +344,14 @@ class Game(object):
             csvr = csv.reader(csvf)
             for row in csvr:
                 pnumlist[row[2], False] = [128 + int(row[0]), row[1]]
-        pnumlist['team1', True] = [65, self.loginfo[-1]]
+        '''pnumlist['team1', True] = [65, self.loginfo[-1]]
         pnumlist['team2', False] = [193, self.loginfo[-2]]
         pnumlist['official', True] = [67, 'Official']
-        pnumlist['NONE', True] = [68, '']
+        pnumlist['NONE', True] = [68, '']'''
+        pnumlist['team1'] = [65, self.loginfo[-1]]
+        pnumlist['team2'] = [193, self.loginfo[-2]]
+        pnumlist['official'] = [67, 'Official']
+        pnumlist['NONE'] = [68, '']
         self.pnumlist = pnumlist
 
     @staticmethod

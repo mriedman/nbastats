@@ -26,7 +26,7 @@ def pbp1(x0, v=0):
                 return s[:9]
             return s
         if v == 0:
-            return s.split('$$')[1]
+            return [s.split('$$')[1], ishome]
         elif v == 1 or v != 0.5:
             return s.split('$$')[2]
         else:
@@ -287,8 +287,16 @@ def csc(x):
         return [-1, -1, -1]
 
 
-def binpbp(x0, pnumlist, ishome):
-    pnumget = lambda x: [pnumlist[x][0]] if x in pnumlist else [192] + [ord(i) for i in x]
+def binpbp(x0, pnumlist, is_team_away):
+    print(pnumlist)
+    # pnumget = lambda x: [pnumlist[x][0]] if x in pnumlist else [192] + [ord(i) for i in x]
+    def pnumget(x):
+        if type(x) == list:
+            x[1] = x[1] ^ is_team_away
+            x1 = tuple(x)
+            return [pnumlist[x1][0]] if x1 in pnumlist else [192] + [ord(i) for i in x[0]]
+        else:
+            return [pnumlist[x][0]] if x in pnumlist else [192] + [ord(i) for i in x]
     reqpnums = ['official', 'team1', 'team2', 'NONE']
     for i in reqpnums:
         if i not in pnumlist:
@@ -376,7 +384,7 @@ def binpbp(x0, pnumlist, ishome):
         pbplist += x1
         if p[0] == 'uk':
             if p[1] == 'violation':
-                x2 = binpbp([p[1:]], pnumlist, ishome)
+                x2 = binpbp([p[1:]], pnumlist, is_team_away)
                 x1 += [start] + [ord(i) for i in p[3]] + [0] + x2[1:]
         # print(x1)
     return pbplist

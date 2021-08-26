@@ -11,6 +11,7 @@ from core.teamcodes import *
 
 t = time()
 
+
 def getpnum(tm: str, yr: str):
     path = PurePath('..', 'core', 'data', abbrtocode[tm], 'season', yr)
     pnumlist = {}
