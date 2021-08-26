@@ -12,7 +12,7 @@ games = listdir(pbppath)
 lineups = {}
 for filename in games:
     '''select = PlayerGameSelect((lambda x: x.date() == filename[:8], lambda x: x.is_start))
-    l = lookup(select=select, ndup=False)'''
+    line_bytes = lookup(select=select, ndup=False)'''
     select = PlayerGameSelect((lambda x: x.date() == filename[:8],))
     print(filename[:8])
     l = lookup(select=select, ndup=False, fq=True)
@@ -26,7 +26,7 @@ for filename in games:
         return None, False
     exchanges = decode_file(pbppath, filename, player_swap)
     print(exchanges)
-    cur_lineup = ({(i[1], True) for i in l[:5]}, {(i[1], False) for i in l[5:]})
+    cur_lineup = ({(i[1], True) for i in line_bytes[:5]}, {(i[1], False) for i in line_bytes[5:]})
     for e in exchanges:
         # print(cur_lineup)
         print(e)

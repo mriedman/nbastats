@@ -367,7 +367,7 @@ class Game(object):
                 if k == 1:
                     # Add player ID-associated pnumlist byte (e.g. duranke01)
                     k1 = j[k].split('/')[-1][:-5]
-                    '''k2 = [ord(l) for l in k1]
+                    '''k2 = [ord(line_bytes) for line_bytes in k1]
                     while len(k2) < 9:
                         k2.append(255)
                     g2 += k2'''

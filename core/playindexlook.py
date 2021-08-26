@@ -189,7 +189,7 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
                 psl.stats = sl[1]
                 sign = 1 if sortbydir == 'a' else -1
                 return sign * psl.str_to_func[sortbycat]()
-            l1 = sorted(l, key=sortfunc)
+            l1 = sorted(line_bytes, key=sortfunc)
             return [i[0] for i in l1]'''
             if select.checkseason():
                 l.append([yr, team])

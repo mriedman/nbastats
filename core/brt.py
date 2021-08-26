@@ -16,10 +16,10 @@ def get_table(x, mode='N'):
             for k in j1:
                 '''if mode=='PBP':
                     k1=k.split('<')[1:]
-                    k2=[l.split('>')[-1] for l in k1]
+                    k2=[line_bytes.split('>')[-1] for line_bytes in k1]
                     k3=''
-                    for l in k2:
-                        k3+=l
+                    for line_bytes in k2:
+                        k3+=line_bytes
                     j2.append(k3)'''
                 if mode=='PBP':
                     k1=k.split('<')[1:]
