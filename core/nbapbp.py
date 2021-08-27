@@ -244,6 +244,7 @@ class Season(object):
             if tm2 in j and j[len(tm2) + 2] != 'H' and j[len(tm2) + 2] != 'Q' and j[len(tm2) + 2] != 'O':
                 # Full Game (not Half/Quarter/OT)
                 tmbx = j
+            # Full Quarters only for own team
             elif tm2 in j and j[len(tm2) + 2] == 'Q':
                 for k in gamebxsc[j]:
                     if len(k) >= 3 and k[2] == '12:00':
@@ -261,7 +262,7 @@ class Season(object):
                 # Full Game (not Half/Quarter/OT)
                 opptmbx = j
             # Opp tm full quarter (uncomment)
-            '''elif tm3 in j and j[len(tm3) + 2] == 'Q':
+            elif tm3 in j and j[len(tm3) + 2] == 'Q':
                 for k in gamebxsc[j]:
                     if len(k) >= 3 and k[2] == '12:00':
                         full_quarters.append(((self.get_id_from_url(k[1]), False), int(j[len(tm3) + 3])))
@@ -269,7 +270,7 @@ class Season(object):
                 for k in gamebxsc[j]:
                     if len(k) >= 3 and k[2] == '5:00':
                         # print(k)
-                        full_quarters.append(((self.get_id_from_url(k[1]), False), int(j[len(tm3) + 4]) + 4))'''
+                        full_quarters.append(((self.get_id_from_url(k[1]), False), int(j[len(tm3) + 4]) + 4))
         if tmbx == '' or opptmbx == '':
             print(game.loginfo)
             raise ValueError('Team or Other team\'s boxscore not found')
@@ -291,7 +292,7 @@ class Season(object):
         pbpf.write(bytes(gameheader))
         for player in game.pnumlist:
             if game.pnumlist[player][0] >= 128:
-                playhead = [2, game.pnumlist[player][0]] + [ord(i) for i in player[0]] + [255] * (9 - len(player))
+                playhead = [2, game.pnumlist[player][0]] + [ord(i) for i in player[0]] + [255] * (9 - len(player[0]))
                 pbpf.write(bytes(playhead))
 
         # semaphore.release()

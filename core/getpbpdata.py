@@ -65,7 +65,7 @@ def pbp1(x0, v=0):
                 # return y
                 raise ValueError
 
-            if not '(' in y:
+            if '(' not in y:
                 return y1
             f = y.index('(')
             if y[f + 1:f + 4] == 'ass':
@@ -289,6 +289,7 @@ def csc(x):
 
 def binpbp(x0, pnumlist, is_team_away):
     print(pnumlist)
+
     # pnumget = lambda x: [pnumlist[x][0]] if x in pnumlist else [192] + [ord(i) for i in x]
     def pnumget(x):
         if type(x) == list:
@@ -297,6 +298,7 @@ def binpbp(x0, pnumlist, is_team_away):
             return [pnumlist[x1][0]] if x1 in pnumlist else [192] + [ord(i) for i in x[0]]
         else:
             return [pnumlist[x][0]] if x in pnumlist else [192] + [ord(i) for i in x]
+
     reqpnums = ['official', 'team1', 'team2', 'NONE']
     for i in reqpnums:
         if i not in pnumlist:
@@ -311,9 +313,10 @@ def binpbp(x0, pnumlist, is_team_away):
             continue
         if p[0] == 'quarter':
             if p[1] <= 4:
-                currqsecs = p[1] * 7200
+                # Extra second to de-identify Q1 0:00 and Q2 12:00
+                currqsecs = p[1] * 7201
             else:
-                currqsecs = 4 * 7200 + p[1] * 3000
+                currqsecs = 4 * 7201 + (p[1] - 4) * 3001
             continue
         currtime = currqsecs - c[0]
         x1 = []

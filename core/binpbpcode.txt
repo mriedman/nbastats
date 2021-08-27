@@ -1,0 +1,64 @@
+PLAY 0:
+    ENTERS FOR [0]
+    PNUM ENTERING [1]
+    PNUM EXITING [2]
+    TIME [3:5]
+    Example: 0 10 12 5 15 | 12 enters for 10 at Q1 09:51
+PLAY 1-6:
+    MADE SHOT [0]
+    PNUM MAKING SHOT [1]
+        Unblocked, Unassisted, Non-Free Throw: 2-3
+            2: Made 2-PT Shot
+            3: Made 3-PT Shot
+            SHOT TYPE [2]
+                Type (playtypes.shottypelist)
+            SHOT DISTANCE (FT) [3]
+                254 if unknown; 0 if at rim
+            SCORE [4:6]
+            TIME [6:8]
+        Free Throw: 4
+            SHOT INFO [2]
+                Attempt # * 32 + Total Attempts * 8 + Type (playtypes.freethrowlist)
+            SCORE [3:5]
+            TIME [5:7]
+            Example: 4 51 10 8 5 15 | 51 makes normal free throw 1 of 2 at Q1 9:51; Score is 10-8
+        Blocked or Assisted Shot: 5-6
+            5: Made 2-PT Shot
+            6: Made 3-PT Shot
+            SHOT TYPE [2]
+                Type (playtypes.shottypelist)
+            SHOT DISTANCE (FT) [3]
+                254 if unknown; 0 if at rim
+            BLOCK OR ASSIST [4]
+                Block: 1
+                Assist: 0
+            BLOCK/ASSIST PNUM [5]
+            SCORE [6:8]
+            TIME [8:10]
+PLAY 7-12:
+    MISSED SHOT [0]
+    PNUM TAKING SHOT [1]
+        Unblocked, Unassisted, Non-Free Throw: 2-3
+            8: Missed 2-PT Shot
+            9: Missed 3-PT Shot
+            SHOT TYPE [2]
+                Type (playtypes.shottypelist)
+            SHOT DISTANCE (FT) [3]
+                254 if unknown; 0 if at rim
+            TIME [4:6]
+        Free Throw: 10
+            SHOT INFO [2]
+                Attempt # * 32 + Total Attempts * 8 + Type (playtypes.freethrowlist)
+            TIME [3:5]
+        Blocked or Assisted Shot: 11-12
+            11: Made 2-PT Shot
+            12: Made 3-PT Shot
+            SHOT TYPE [2]
+                Type (playtypes.shottypelist)
+            SHOT DISTANCE (FT) [3]
+                254 if unknown; 0 if at rim
+            BLOCK OR ASSIST [4]
+                Block: 1
+                Assist: 0
+            BLOCK/ASSIST PNUM [5]
+            TIME [6:8]

@@ -91,7 +91,7 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
                 continue
             if team != 'CLE':
                 continue
-            teampath = PurePath('..', 'core', 'data' ,team, 'season', yr, 'boxscores')
+            teampath = PurePath('..', 'core', 'data', team, 'season', yr, 'boxscores')
             ownpnumlist = getpnum(team, yr)
             opppnumlist = {}
             select.resetseason()
@@ -153,28 +153,29 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
                             ct += 1
                         elif g0 == 4:
                             ct += 1
-                            print(gamefile,'...')
+                            # print(gamefile,'...')
                             if not full_quarter_search:
                                 break
                         elif g0 == 5:
-                            print('Hi2!')
+                            # print('Hi2!')
                             # Full quarter played
                             cur_fq = [i for i in f.read(2)]
-                            try:
-                                l.append(select.fqoutput(cur_fq))
-                            except KeyError:
-                                print('Uh-oh')
-                                print([i for i in f.read()])
-                                raise KeyError
-                            print(l[-1])
-                            print(cur_fq)
+                            if select.checkline(psl):
+                                try:
+                                    l.append(select.fqoutput(cur_fq))
+                                except KeyError:
+                                    print('Uh-oh')
+                                    print([i for i in f.read()])
+                                    raise KeyError
+                            # print(l[-1])
+                            # print(cur_fq)
                             ct += 3
                         else:
                             print(teampath / gamefile)
                             print(gamefile)
                             print(g0)
                             print(f.read())
-                            return l
+                            # return l
                             raise ValueError('First index out of range')
                     except IndexError:
                         break

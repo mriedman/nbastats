@@ -46,8 +46,8 @@ def decode_full_quarter(l, game: GameHead):
     pl1 = game.pnum1
     pl2 = game.pnum2
     if l[0] < 128:
-        return [pl1[l[0]], l[1]]
-    return [pl2[l[0]], l[1]]
+        return [pl1[l[0]], l[1], True,  game.date()]
+    return [pl2[l[0] - 128], l[1], False,  game.date()]
 
 
 def decode_game(game: GameHead):
@@ -127,6 +127,8 @@ class PlayerGameSelect(AllSelect):
         return decode_player_line(psl.stats, self.game)
 
     def fqoutput(self, fq):
+        # Accepts two bytes from binary boxscore
+        # Returns [pnum, quarter]
         return decode_full_quarter(fq, self.game)
 
 

@@ -1,4 +1,5 @@
 from pathlib import PurePath
+from typing import Union
 import csv
 
 
@@ -6,7 +7,7 @@ def decode_play(line, **kwargs):
     return None, False
 
 
-def decode_file(pbppath, filename, playparser=decode_play, ppargs={}):
+def decode_file(pbppath, filename: Union[PurePath, str], playparser=decode_play, ppargs={}):
     gamefile = open(pbppath / filename, mode='rb')
     header = gamefile.read(26)
     ishome = header[10:13] == b'ATL'
