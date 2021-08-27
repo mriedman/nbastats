@@ -46,8 +46,8 @@ def decode_full_quarter(l, game: GameHead):
     pl1 = game.pnum1
     pl2 = game.pnum2
     if l[0] < 128:
-        return [pl1[l[0]], l[1], True,  game.date()]
-    return [pl2[l[0] - 128], l[1], False,  game.date()]
+        return [pl1[l[0]], l[1], True, game.date()]
+    return [pl2[l[0] - 128], l[1], False, game.date()]
 
 
 def decode_game(game: GameHead):

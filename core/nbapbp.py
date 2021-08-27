@@ -214,7 +214,6 @@ class Season(object):
 
         for game in self.gamelist:
             game.gamefromgameobj(boxscore, pbp, year, self.nspath, copy(self.ownpnumlist), force)
-            print(game.pnumlist)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
             # Start the load operations and mark each future with its URL
@@ -224,7 +223,6 @@ class Season(object):
             future_to_day.update(
                 {executor.submit(game.pbp): (game, 'pbp') for game in self.gamelist if not game.pbpbool})
             for future in concurrent.futures.as_completed(future_to_day):
-                print('A')
                 game, t = future_to_day[future]
                 try:
                     data = future.result()
@@ -316,7 +314,6 @@ class Game(object):
         self.pbp0 = None
 
     def pbp(self):
-        print("https://www.basketball-reference.com" + self.loginfo[6])
         s = request.urlopen("https://www.basketball-reference.com/boxscores/pbp/" + self.loginfo[6][11:],
                             context=ctx)
         t = str(s.read())
@@ -326,13 +323,10 @@ class Game(object):
         return get_table(self.pbp0, mode='PBP')
 
     def bxsc(self):
-        # if os.path.isfile(self.gamedir / 'boxscore.csv'):
-        #    return None
         s = request.urlopen("https://www.basketball-reference.com" + self.loginfo[6], context=ctx)
         self.bxsc0 = str(s.read())
 
     def gamefromgameobj(self, boxscore, pbp, year, nspath, pnumlist, force=False):
-        # print('Made it!')
         self.pbppath = nspath / 'pbp' / (self.loginfo[6].split('/')[-1][:-8] + '.txt')
         self.bxscpath = nspath / 'boxscores' / (self.loginfo[6].split('/')[-1][:-8] + '.txt')
         self.bxbool = (not boxscore) or (os.path.isfile(self.bxscpath) and not force)

@@ -1,8 +1,10 @@
 from pathlib import PurePath
 from os import listdir
 import csv
+from collections import defaultdict
 from core.pbpdecoder import decode_file
 from core.playindexlook import PlayerGameSelect, lookup
+import numpy as np
 
 
 pbppath = PurePath('..', 'core', 'data', 'CLE', 'season', '2021', 'pbp')
@@ -39,6 +41,16 @@ def get_secs_from_q(q):
     return 7200 * 4 + (q - 5) * 3000
 
 
+select = PlayerGameSelect(())
+l = lookup(select=select, ndup=False, fq=True)
+
+fq_dict = defaultdict(list)
+for j in l:
+    fq_dict[(j[1], j[3])].append((j[0][1], j[2]))
+
+all_lineups = defaultdict(lambda: np.zeros(3))
+all_players = set()
+
 for filename in games:
     def player_swap(x, pnumlist, **kwargs):
         if x[0] == 0:
@@ -54,8 +66,8 @@ for filename in games:
         state.players_to_find = 10
         state.cur_lineup = [{i for i in range(state.cur_q * 10, state.cur_q * 10 + 5)},
                       {i for i in range(state.cur_q * 10 + 5, state.cur_q * 10 + 10)}]
-        if state.cur_q in fq_dict:
-            cur_q_starters = [[i for i in fq_dict[state.cur_q] if not i[1]], [i for i in fq_dict[state.cur_q] if i[1]]]
+        if (state.cur_q, filename[:8]) in fq_dict:
+            cur_q_starters = [[i for i in fq_dict[(state.cur_q, filename[:8])] if not i[1]], [i for i in fq_dict[(state.cur_q, filename[:8])] if i[1]]]
         else:
             cur_q_starters = [[], []]
         state.q_starters.append(cur_q_starters)
@@ -70,26 +82,19 @@ for filename in games:
 
         state.cur_seconds = get_secs_from_q(new_q)
 
-    if filename[:8] != '20210109':
+    if filename == '.DS_Store':
         continue
 
     exchanges = decode_file(pbppath, filename, player_swap)
-
-    '''select = PlayerGameSelect((lambda x: x.date() == filename[:8], lambda x: x.is_start))
-    line_bytes = lookup(select=select, ndup=False)'''
-
-    select = PlayerGameSelect((lambda x: x.date() == filename[:8],))
-    l = lookup(select=select, ndup=False, fq=True)
-    fq_dict = {i: [(j[0][1], j[2]) for j in l if j[1] == i] for i in [j[1] for j in l]}
 
     state = LineupHolder()
 
     for e in exchanges:
         if e[-1] == 0:
+            # Pair is swapped
             swap_pair, seconds = e[:-1]
 
             new_q = get_q_from_secs(seconds)
-            # state.cur_seconds = [seconds, new_q]
             if new_q != state.cur_q:
                 prep_new_quarter(new_q, state)
 
@@ -110,11 +115,13 @@ for filename in games:
 
             state.cur_seconds = seconds - state.cur_q
         elif e[-1] == 1:
+            # Someone scored
             new_q = get_q_from_secs(255 * e[2] + e[3])
             if new_q != state.cur_q:
                 prep_new_quarter(new_q, state)
             state.cur_score = e[:2]
 
+    # Add on final score, time
     state.lineup_list[-1].append(get_secs_from_q(state.cur_q + 1) - state.cur_seconds)
     state.lineup_list.append([[], [], state.cur_score, 0])
     state.lineup_list.pop(0)
@@ -123,8 +130,34 @@ for filename in games:
         for j in i[:2]:
             for k0, k in enumerate(j):
                 if type(k) == int:
+                    # Fill in previously unknown starters
                     j[k0] = state.q_starters[k // 10][(k % 10) // 5][k % 5]
+        # Flip scores around for away games to match lineup_list order
         if not ishome[filename[:9]]:
             i[2] = i[2][-1::-1]
-        print(i)
-    exit(0)
+        # print(i)
+    for i0, i in enumerate(state.lineup_list[:-1]):
+        for j in i[:2]:
+            for k in j:
+                all_players.add(k[0])
+        all_lineups[(tuple(j[0] for j in i[0]), tuple(j[0] for j in i[1]))] += \
+            [state.lineup_list[i0 + 1][2][0] - i[2][0], state.lineup_list[i0 + 1][2][1] - i[2][1], i[3]]
+
+print(len(all_players))
+print(len(all_lineups.keys()))
+player_list = list(all_players)
+player_list_rev = {player_list[i]: i for i in range(len(player_list))}
+lineup_list = list(all_lineups.keys())
+lineup_array = np.zeros((len(lineup_list), len(player_list)))
+performance_array = np.zeros((len(lineup_list), 3))
+for idx1, lineup in enumerate(lineup_list):
+    for idx, team in enumerate(lineup):
+        for player in team:
+            lineup_array[idx1, player_list_rev[player]] = 2 * idx - 1
+    performance_array[idx1] = all_lineups[lineup]
+
+poss = performance_array[:, 2]
+poss[poss == 0] = 1
+performance_array2 = performance_array[:, :2] / poss.reshape((-1, 1))
+
+np.savez_compressed('lineups.npz', lineup_array=lineup_array, performance_array=performance_array2, player_list = np.array(player_list))
