@@ -100,11 +100,10 @@ class Season(object):
                     loginfo = game + [1, game[9].split('/')[2], self.team]
                     gamelist1.append(Game(loginfo, self.year, ))
             self.gamelist = gamelist1
-            if not os.path.isfile(self.nspath / 'gs.csv'):
-                with open(self.nspath / 'gs.csv', mode='w') as csvf:
-                    csvw = csv.writer(csvf)
-                    for i in self.gamelist:
-                        csvw.writerow(i.loginfo)
+            with open(self.nspath / 'gs.csv', mode='w') as csvf:
+                csvw = csv.writer(csvf)
+                for i in self.gamelist:
+                    csvw.writerow(i.loginfo)
             # filepath = PurePath('..', 'core', 'data', self.team, 'season', self.year)
             os.makedirs(self.nspath / 'pbp', exist_ok=True)
             os.makedirs(self.nspath / 'boxscores', exist_ok=True)
@@ -194,7 +193,7 @@ class Season(object):
                 print('Game has not happened yet:')
                 print(loginfo)
                 _gameheader.append(255)
-                return
+                return None
         if loginfo[11] == '':
             _gameheader.append(0)
         elif loginfo[11] == 'OT':
@@ -230,48 +229,41 @@ class Season(object):
                     print('%r and %s generated an exception: %s' % (game, t, exc))
                 else:
                     if t == 'bx':
-                        self.writebxsc(game, tm2)
+                        self.writebxsc(game)
                     elif t == 'pbp':
                         self.writepbp(game)
 
-    def writebxsc(self, game, tm2):
-        gamebxsc = get_table(game.bxsc0, mode='Link')
+    @staticmethod
+    def get_bxsc_keys_by_team(gamebxsc, team, ishome):
         tmbx = ''
         full_quarters = []
         for j in gamebxsc:
-            if tm2 in j and j[len(tm2) + 2] != 'H' and j[len(tm2) + 2] != 'Q' and j[len(tm2) + 2] != 'O':
+            # if tm2 in j and j[len(tm2) + 2] != 'H' and j[len(tm2) + 2] != 'Q' and j[len(tm2) + 2] != 'O':
+            if j == f'box-{team}-game-basic':
                 # Full Game (not Half/Quarter/OT)
                 tmbx = j
             # Full Quarters only for own team
-            elif tm2 in j and j[len(tm2) + 2] == 'Q':
+            elif team in j and j.split('-')[2][0] == 'q':
                 for k in gamebxsc[j]:
                     if len(k) >= 3 and k[2] == '12:00':
-                        full_quarters.append(((self.get_id_from_url(k[1]), True), int(j[len(tm2) + 3])))
-            elif tm2 in j and j[len(tm2) + 2] == 'O':
+                        full_quarters.append(((Season.get_id_from_url(k[1]), ishome), int(j.split('-')[2][-1])))
+            elif team in j and j.split('-')[2][0] == 'o':
                 for k in gamebxsc[j]:
                     if len(k) >= 3 and k[2] == '5:00':
-                        # print(k)
-                        full_quarters.append(((self.get_id_from_url(k[1]), True), int(j[len(tm2) + 4]) + 4))
-        # print(full_quarters)
-        tm3 = game.loginfo[8]
-        opptmbx = ''
-        for j in gamebxsc:
-            if tm3 in j and j[len(tm3) + 2] != 'H' and j[len(tm3) + 2] != 'Q' and j[len(tm3) + 2] != 'O':
-                # Full Game (not Half/Quarter/OT)
-                opptmbx = j
-            # Opp tm full quarter (uncomment)
-            elif tm3 in j and j[len(tm3) + 2] == 'Q':
-                for k in gamebxsc[j]:
-                    if len(k) >= 3 and k[2] == '12:00':
-                        full_quarters.append(((self.get_id_from_url(k[1]), False), int(j[len(tm3) + 3])))
-            elif tm3 in j and j[len(tm3) + 2] == 'O':
-                for k in gamebxsc[j]:
-                    if len(k) >= 3 and k[2] == '5:00':
-                        # print(k)
-                        full_quarters.append(((self.get_id_from_url(k[1]), False), int(j[len(tm3) + 4]) + 4))
+                        full_quarters.append(((Season.get_id_from_url(k[1]), ishome), int(j.split('-')[2][-1]) + 4))
+        return tmbx, full_quarters
+
+    def writebxsc(self, game):
+        gamebxsc = get_table_by_id(game.bxsc0, mode='Link')
+        tmbx, own_full_quarters = self.get_bxsc_keys_by_team(gamebxsc, self.team, True)
+        opptmbx, opp_full_quarters = self.get_bxsc_keys_by_team(gamebxsc, game.loginfo[-2], False)
+
+        full_quarters = own_full_quarters + opp_full_quarters
+
         if tmbx == '' or opptmbx == '':
             print(game.loginfo)
             raise ValueError('Team or Other team\'s boxscore not found')
+
         gameheader = Season.getgameheader(game.loginfo)
         if gameheader is None:
             return

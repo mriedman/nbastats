@@ -75,7 +75,7 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
     # TYPE 1:
     # See bincodeinfo.txt for information on file format
 
-    print('ALERT: lookup is only looking at 2020-21 CLE')
+    print('ALERT: lookup is only looking at 2020-21')
 
     l = []
     full_quarter_search = 'fq' in kwargs and kwargs.get('fq')
@@ -89,8 +89,8 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
         for team in nameyears:
             if yr not in nameyears[team]:
                 continue
-            if team != 'CLE':
-                continue
+            '''if team != 'CLE':
+                continue'''
             teampath = PurePath('..', 'core', 'data', team, 'season', yr, 'boxscores')
             ownpnumlist = getpnum(team, yr)
             opppnumlist = {}

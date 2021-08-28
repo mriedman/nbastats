@@ -57,6 +57,7 @@ def get_table(x, mode='N'):
         c[i]=i2
     return c
 
+
 def get_table_by_id(x, mode='N'):
     a = x.split('<table')[1:]
     b, c = {}, {}

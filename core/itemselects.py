@@ -43,11 +43,12 @@ def decode_player_line(line_bytes, game: GameHead):
 
 
 def decode_full_quarter(l, game: GameHead):
+    # Return: [[player_name, player_id], is_cur_team, date, player_team, opp_team]
     pl1 = game.pnum1
     pl2 = game.pnum2
     if l[0] < 128:
-        return [pl1[l[0]], l[1], True, game.date()]
-    return [pl2[l[0] - 128], l[1], False, game.date()]
+        return [pl1[l[0]], l[1], True, game.date(), game.tm1(), game.tm2()]
+    return [pl2[l[0] - 128], l[1], False, game.date(), game.tm2(), game.tm1()]
 
 
 def decode_game(game: GameHead):

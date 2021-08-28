@@ -32,8 +32,14 @@ def get_secs_from_q(q):
 
 
 yr = '2021'
+all_lineups = defaultdict(lambda: np.zeros(3))
+all_players = set()
+
 for team in nameyears:
     if yr not in nameyears[team]:
+        continue
+
+    if team != 'ATL':
         continue
 
     pbppath = PurePath('..', 'core', 'data', team, 'season', yr, 'pbp')
@@ -51,10 +57,7 @@ for team in nameyears:
 
     fq_dict = defaultdict(list)
     for j in l:
-        fq_dict[(j[1], j[3])].append((j[0][1], j[2]))
-
-    all_lineups = defaultdict(lambda: np.zeros(3))
-    all_players = set()
+        fq_dict[(j[1], j[3], j[5 - j[2]])].append((j[0][1], j[2]))
 
     for filename in games:
         def player_swap(x, pnumlist, **kwargs):
@@ -66,13 +69,14 @@ for team in nameyears:
 
         def prep_new_quarter(new_q, state):
             if state.players_to_find != 0:
-                raise Exception(f'Not all players in Q{new_q - 1} of {filename} found.')
+                print(state.q_starters[-1])
+                raise Exception(f'Not all players in Q{new_q - 1} of {filename} in {team}, {yr} found.')
             state.cur_q = new_q
             state.players_to_find = 10
             state.cur_lineup = [{i for i in range(state.cur_q * 10, state.cur_q * 10 + 5)},
                           {i for i in range(state.cur_q * 10 + 5, state.cur_q * 10 + 10)}]
-            if (state.cur_q, filename[:8]) in fq_dict:
-                cur_q_starters = [[i for i in fq_dict[(state.cur_q, filename[:8])] if not i[1]], [i for i in fq_dict[(state.cur_q, filename[:8])] if i[1]]]
+            if (state.cur_q, filename[:8], team) in fq_dict:
+                cur_q_starters = [[i for i in fq_dict[(state.cur_q, filename[:8], team)] if not i[1]], [i for i in fq_dict[(state.cur_q, filename[:8], team)] if i[1]]]
             else:
                 cur_q_starters = [[], []]
             state.q_starters.append(cur_q_starters)
@@ -89,6 +93,8 @@ for team in nameyears:
 
         if filename == '.DS_Store':
             continue
+
+        print(filename)
 
         exchanges = decode_file(pbppath, filename, player_swap)
 
@@ -153,12 +159,12 @@ print(len(all_lineups.keys()))
 player_list = list(all_players)
 player_list_rev = {player_list[i]: i for i in range(len(player_list))}
 lineup_list = list(all_lineups.keys())
-lineup_array = np.zeros((len(lineup_list), len(player_list)))
+lineup_array = np.zeros((len(lineup_list), 2 * len(player_list)))
 performance_array = np.zeros((len(lineup_list), 3))
 for idx1, lineup in enumerate(lineup_list):
     for idx, team in enumerate(lineup):
         for player in team:
-            lineup_array[idx1, player_list_rev[player]] = 2 * idx - 1
+            lineup_array[idx1, player_list_rev[player] + (1 - idx) * len(player_list)] = 1
     performance_array[idx1] = all_lineups[lineup]
 
 '''poss = performance_array[:, 2]
