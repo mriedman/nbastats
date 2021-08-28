@@ -1,3 +1,3 @@
 core/data/**
 nbacom/data/**
-projects/lineups.npz
+**.npz

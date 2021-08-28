@@ -34,13 +34,47 @@ def get_secs_from_q(q):
 yr = '2021'
 all_lineups = defaultdict(lambda: np.zeros(3))
 all_players = set()
+select = PlayerGameSelect(())
+l = lookup(select=select, ndup=False, fq=True)
+
+fq_dict = defaultdict(list)
+for j in l:
+    fq_dict[(j[1], j[3], j[5 - j[2]])].append((j[0][1], j[2]))
+fq_dict[(4, '20210311', 'CHO')].append(('washipj01', True))
+fq_dict[(4, '20210311', 'DET')].append(('washipj01', False))
+
+fq_dict[(3, '20210110', 'CHI')].append(('leonaka01', False))
+fq_dict[(3, '20210110', 'CHI')].append(('ibakase01', False))
+fq_dict[(3, '20210110', 'LAC')].append(('leonaka01', True))
+fq_dict[(3, '20210110', 'LAC')].append(('ibakase01', True))
+
+fq_dict[(4, '20210528', 'DAL')].append(('georgpa01', False))
+fq_dict[(4, '20210528', 'DAL')].append(('rondora01', False))
+fq_dict[(4, '20210528', 'LAC')].append(('georgpa01', True))
+fq_dict[(4, '20210528', 'LAC')].append(('rondora01', True))
+
+fq_dict[(3, '20210411', 'DET')].append(('morrima03', False))
+fq_dict[(3, '20210411', 'LAC')].append(('morrima03', True))
+
+fq_dict[(1, '20210108', 'DET')].append(('grantje01', True))
+fq_dict[(1, '20210108', 'PHO')].append(('grantje01', False))
+
+fq_dict[(1, '20210108', 'LAC')].append(('curryst01', False))
+fq_dict[(1, '20210108', 'GSW')].append(('curryst01', True))
+
+fq_dict[(4, '20210122', 'ORL')].append(('lambje01', False))
+fq_dict[(4, '20210122', 'IND')].append(('lambje01', True))
+
+fq_dict[(1, '20210106', 'NOP')].append(('gilgesh01', False))
+fq_dict[(1, '20210106', 'NOP')].append(('bazleda01', False))
+fq_dict[(1, '20210106', 'OKC')].append(('bazleda01', True))
+fq_dict[(1, '20210106', 'OKC')].append(('gilgesh01', True))
 
 for team in nameyears:
     if yr not in nameyears[team]:
         continue
 
-    if team != 'ATL':
-        continue
+    print(team)
 
     pbppath = PurePath('..', 'core', 'data', team, 'season', yr, 'pbp')
     games = listdir(pbppath)
@@ -51,13 +85,6 @@ for team in nameyears:
         csvr = csv.reader(f)
         for row in csvr:
             ishome[row[6][-17:-8]] = row[6][-8:-5] == row[-1]
-
-    select = PlayerGameSelect(())
-    l = lookup(select=select, ndup=False, fq=True)
-
-    fq_dict = defaultdict(list)
-    for j in l:
-        fq_dict[(j[1], j[3], j[5 - j[2]])].append((j[0][1], j[2]))
 
     for filename in games:
         def player_swap(x, pnumlist, **kwargs):
@@ -70,6 +97,13 @@ for team in nameyears:
         def prep_new_quarter(new_q, state):
             if state.players_to_find != 0:
                 print(state.q_starters[-1])
+                print(f'Not all players in Q{new_q - 1} of {filename} in {team}, {yr} found.')
+                for i in state.q_starters:
+                    for j in i:
+                        print(j)
+                print(f'fq_dict[({new_q - 1}, \'{filename[:8]}\', \'{team}\')].append((\'\', False))')
+                print(f'fq_dict[({new_q - 1}, \'{filename[:8]}\', \'{team}\')].append((\'\', True))')
+                print('Hi')
                 raise Exception(f'Not all players in Q{new_q - 1} of {filename} in {team}, {yr} found.')
             state.cur_q = new_q
             state.players_to_find = 10
@@ -93,8 +127,6 @@ for team in nameyears:
 
         if filename == '.DS_Store':
             continue
-
-        print(filename)
 
         exchanges = decode_file(pbppath, filename, player_swap)
 
@@ -142,7 +174,16 @@ for team in nameyears:
                 for k0, k in enumerate(j):
                     if type(k) == int:
                         # Fill in previously unknown starters
-                        j[k0] = state.q_starters[k // 10][(k % 10) // 5][k % 5]
+                        try:
+                            j[k0] = state.q_starters[k // 10][(k % 10) // 5][k % 5]
+                        except IndexError:
+                            print(f'Not all players in QLast of {filename} in {team}, {yr} found.')
+                            for i1 in state.q_starters:
+                                for j1 in i1:
+                                    print(j1)
+                            print(f'fq_dict[({4}, \'{filename[:8]}\', \'{team}\')].append((\'\', False))')
+                            print(f'fq_dict[({4}, \'{filename[:8]}\', \'{team}\')].append((\'\', True))')
+                            raise IndexError
             # Flip scores around for away games to match lineup_list order
             if not ishome[filename[:9]]:
                 i[2] = i[2][-1::-1]
@@ -164,7 +205,7 @@ performance_array = np.zeros((len(lineup_list), 3))
 for idx1, lineup in enumerate(lineup_list):
     for idx, team in enumerate(lineup):
         for player in team:
-            lineup_array[idx1, player_list_rev[player] + (1 - idx) * len(player_list)] = 1
+            lineup_array[idx1, player_list_rev[player] + idx * len(player_list)] = 1
     performance_array[idx1] = all_lineups[lineup]
 
 '''poss = performance_array[:, 2]
