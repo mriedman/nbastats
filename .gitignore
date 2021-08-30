@@ -2,3 +2,4 @@ core/data/**
 nbacom/data/**
 **.npz
 **.sav
+**.db
