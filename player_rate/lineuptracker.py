@@ -8,6 +8,11 @@ from core.teamcodes import *
 import numpy as np
 
 
+'''
+Uses scraped play-by-play data from core/data to store every nba 10-man lineup in lineups.npz
+'''
+
+
 class LineupHolder:
     def __init__(self):
         self.cur_lineup = [set(), set()]
@@ -40,6 +45,9 @@ l = lookup(select=select, ndup=False, fq=True)
 fq_dict = defaultdict(list)
 for j in l:
     fq_dict[(j[1], j[3], j[5 - j[2]])].append((j[0][1], j[2]))
+
+# BB-Ref throws in some inaccurate data so you don't copy them (I think)! I fixed it.
+
 fq_dict[(4, '20210311', 'CHO')].append(('washipj01', True))
 fq_dict[(4, '20210311', 'DET')].append(('washipj01', False))
 
