@@ -81,7 +81,7 @@ EM
 4- stretch 4s (Millsap, Barnes, Draymond, Gallinari, Olynyk, Jeff Green) (21)
 5- +shooting ball handlers (Morant, Mikal Bridges, Trae, Mitchell, Lillard, Dort, IND LeVert, Norm Powell, TLC) (81)
 6- -shooting ball handlers (Elfrid Payton, Cam Reddish, Danny Green, Satoranský, BKN LeVert, Caruso) (75)
-7- traditional bigs (John Collins, Capela, Gobert, Jarrett Allen, Claxton, Portis, Len, Theis) (89)
+7- non-post-up bigs (John Collins, Capela, Gobert, Jarrett Allen, Claxton, Portis, Len, Theis) (89)
 8- iso guard/wing (Siakam, Butler, Tobias Harris, Dončić, Jrue, Clarkson, Kyrie, Harden, Steph, Chris Paul) (51)
 9- stretch 5s (Boucher, Bagley, Brook Lopez, Wood, Washington, Turner) (13)
 

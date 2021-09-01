@@ -62,3 +62,27 @@ PLAY 7-12:
                 Assist: 0
             BLOCK/ASSIST PNUM [5]
             TIME [6:8]
+PLAY 13-31:
+    FOUL [0]
+        Number determined by core.playtypes.foultypelist
+    PNUMS INVOLVED [1:]
+        Number may vary by type of foul
+    TIME [-2:]
+PLAY 32-63:
+    TURNOVER [0]
+        32-60: No steal
+        61-63: Stolen
+    PNUM TURNING IT OVER [1]
+    TIME [2:4]
+PLAY 64:
+    DRB [0]
+    ...
+PLAY 65:
+    ORB [0]
+    ...
+PLAY 66-68:
+    TIMEOUT [0]
+    ...
+PLAY 69-75:
+    VIOLATION [0]
+    ...

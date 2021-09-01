@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, Ridge
 import pickle
 
 
@@ -42,26 +42,44 @@ def get_ppg_from_lineups(reg, defs, offs):
 def fit_model():
     print(np.mean(performance_array, axis=0))
 
-    # print(performance_array[performance_array[:, 0] > 0.05, :])
-    # print(lineup_array[:5, :200])
-
     reg = LinearRegression(fit_intercept=False).fit(lineup_array, performance_array * (7200 * 4) ** (1))
     print(reg.score(lineup_array, performance_array * 7200 * 4))
 
     pickle.dump(reg, open('naive_pm.sav', 'wb'))
 
 
+def fit_ridge_model(alpha=1/18):
+    print(np.mean(performance_array, axis=0))
+
+    reg = Ridge(alpha=alpha, fit_intercept=True).fit(lineup_array, performance_array * (7200 * 4))
+    print(reg.score(lineup_array, performance_array * 7200 * 4))
+    print(reg.intercept_)
+
+    pickle.dump(reg, open(f'ridge_pm_{round(1/alpha, 2)}.sav', 'wb'))
+
+
+def convert_raw_lineups():
+    with np.load('lineups.npz') as data:
+        lineup_array0 = data['lineup_array']
+        performance_array0 = data['performance_array']
+        player_list = data['player_list']
+
+    lineup_array1, performance_array1 = get_lineups_from_base(lineup_array0, performance_array0)
+    print(lineup_array1.shape, performance_array1.shape)
+
+    sqrts = np.sqrt(performance_array1[:, 1:])
+    lineup_array, performance_array = lineup_array1 * sqrts, performance_array1[:,:1] / sqrts  # - (113 / 7200 / 4) * sqrts
+    np.savez_compressed('lineups2.npz', lineup_array=lineup_array, performance_array=performance_array)
+
+
 with np.load('lineups.npz') as data:
-    lineup_array0 = data['lineup_array']
-    performance_array0 = data['performance_array']
     player_list = data['player_list']
-
-lineup_array1, performance_array1 = get_lineups_from_base(lineup_array0, performance_array0)
-print(lineup_array1.shape, performance_array1.shape)
-
-sqrts = np.sqrt(performance_array1[:, 1:])
-lineup_array, performance_array = lineup_array1 * sqrts, performance_array1[:,:1] / sqrts  # - (113 / 7200 / 4) * sqrts
 player_list_rev = {player_list[i]: i for i in range(player_list.shape[0])}
 
+with np.load('lineups2.npz') as data:
+    lineup_array = data['lineup_array']
+    performance_array = data['performance_array']
+
 if __name__ == '__main__':
-    fit_model()
+    # fit_model()
+    fit_ridge_model()

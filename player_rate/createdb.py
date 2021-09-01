@@ -12,7 +12,7 @@ cur = con.cursor()
 
 cur.execute('DROP TABLE players')
 cur.execute('''CREATE TABLE players
-               (bbref_id, player_name, player_team, nba_com_id, lineup_table_id)''')
+               (bbref_id, player_name, player_team, nba_com_id, lineup_table_id, k10cat)''')
 
 
 def special_char_replace(s: str):
@@ -47,17 +47,19 @@ for tm in nameyears:
                     players[(row1, tm)] = {'player_name': row1, 'player_team': tm, 'bbref_id': row[2],
                                              'lineup_table_id': player_list.index(row[2])}
 
-with open('../nbacom/data/em/10.json') as f:
+with open('../nbacom/data/k/10.json') as f:
     cats = json.load(f)
 
 for cat in cats:
     for record in cats[cat]:
         players[(record[0], tms(record[1]))]['nba_com_id'] = record[2]
+        players[(record[0], tms(record[1]))]['k10cat'] = int(cat)
 
 for player in players:
     if 'nba_com_id' not in players[player]:
         players[player]['nba_com_id'] = -1
-    cur.execute("INSERT INTO players VALUES (:bbref_id, :player_name, :player_team, :nba_com_id, :lineup_table_id)",
+        players[player]['k10cat'] = 10
+    cur.execute("INSERT INTO players VALUES (:bbref_id, :player_name, :player_team, :nba_com_id, :lineup_table_id, :k10cat)",
                 players[player])
 
 con.commit()

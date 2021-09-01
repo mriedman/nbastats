@@ -1,6 +1,8 @@
 from pathlib import PurePath
-from typing import Union
+from typing import Union, Tuple
+from core.teamcodes import nameyears
 import csv
+import os
 
 
 def decode_play(line, **kwargs):
@@ -40,3 +42,49 @@ def decode_file(pbppath, filename: Union[PurePath, str], playparser=decode_play,
             if b:
                 plays.append(p)
     return plays
+
+
+def pbplookup(seasonrange: Tuple[int, int] = (1947, 2022),
+              league: str = 'NBA', gametype: str = 'reg', gameteam: str = '', ndup=True, playparser=decode_play,
+              ppargs={}, gamenumtype: str = 'all', gamenumrange: Tuple[int] = (1, 100), **kwargs):
+    """
+    :param seasonrange: [start,end] (inclusive)
+    :param league: NBA, ABA, Both
+    :param gametype: reg, playoff, either
+    :param gamenumtype:
+        tmszn: team season
+        tmpo:  team playoff series
+        plszn: player season
+        plcar: player career
+        all:   all
+    :param ndup:
+        Only look at each game from one team's perspective
+    :param gameteam:
+        Team whose records to look through. '' indicates all teams
+    :param gamenumrange: [start,end] (inclusive)
+    :return: list of pbp events
+    """
+
+    print('ALERT: pbplookup is only looking at 2020-21')
+
+    l = {}
+    full_quarter_search = 'fq' in kwargs and kwargs.get('fq')
+
+    for yr0 in range(*seasonrange):
+
+        if yr0 != 2021:
+            continue
+
+        yr = str(yr0)
+        for team in nameyears:
+            if yr not in nameyears[team]:
+                continue
+            if gameteam != team and gameteam != '':
+                continue
+            teampath = PurePath('..', 'core', 'data', team, 'season', yr, 'pbp')
+
+            for gamefile in os.listdir(teampath):
+                if gamefile == '.DS_Store':
+                    continue
+                l[(team, yr, gamefile)] = decode_file(teampath, gamefile, playparser, ppargs)
+    return l

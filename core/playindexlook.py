@@ -26,7 +26,7 @@ def getpnum(tm: str, yr: str):
 
 
 def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', seasonrange: Tuple[int] = (1947, 2021),
-           league: str = 'NBA', gametype: str = 'reg', ndup = True,
+           league: str = 'NBA', gametype: str = 'reg', gameteam: str = '', ndup = True,
            gamenumtype: str = 'all', gamenumrange: Tuple[int] = (1, 100),
            select: AllSelect = PlayerGameSelect(()), playerfilterlist=(),
            gamefilterlist: Tuple[Callable[[GameHead], bool]] = (), **kwargs):
@@ -63,6 +63,8 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
         plszn: player season
         plcar: player career
         all:   all
+    :param gameteam:
+        Team whose records to look through. '' indicates all teams
     :param gamenumrange: [start,end] (inclusive)
     :param catfunclist: list of category functions
         e.g. 'PTS>15' or 'PTS+AST>10*TOV'
@@ -89,8 +91,8 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
         for team in nameyears:
             if yr not in nameyears[team]:
                 continue
-            '''if team != 'CLE':
-                continue'''
+            if gameteam != 'team' and gameteam != '':
+                continue
             teampath = PurePath('..', 'core', 'data', team, 'season', yr, 'boxscores')
             ownpnumlist = getpnum(team, yr)
             opppnumlist = {}
