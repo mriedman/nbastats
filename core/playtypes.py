@@ -1,3 +1,5 @@
+# Lists containing all types of plays from BBRef database
+
 # Turnover types that can appear without ;
 tonosclist = ['illegal screen', 'traveling', '3 sec', 'offensive foul', 'shot clock', 'out of bounds lost ball',
               'bad pass', 'step out of bounds', '5 sec', '8 sec', 'inbound', 'off goaltending', 'offensive goaltending',

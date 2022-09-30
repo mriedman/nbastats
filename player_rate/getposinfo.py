@@ -6,7 +6,7 @@ from core.pbpdecoder import pbplookup
 import numpy as np
 from player_rate.idealpm import poss_pct, weibull_by_pts
 import matplotlib.pyplot as plt
-from scipy.stats import binom, weibull_min
+from scipy.stats import binom, weibull_min, norm
 from scipy.special import gamma
 
 
@@ -71,14 +71,33 @@ def plot_points(threes_all):
     plt.show()
 
 
+def plot_cdf(num=10 ** 5):
+    def smooth(l, avg_num=10):
+        window = np.ones(int(avg_num)) / float(avg_num)
+        return np.convolve(l, window, 'same')
+
+    sample = poss_pct(own_pct, pace=np.sum(s[10:] / tot_games), num=num)
+    plt.plot([weibull_min.pdf(i + .5, 14, scale=np.mean(pts) / gamma(15 / 14)) for i in
+              range(150)])
+    plt.plot([norm.pdf(i + .5, np.mean(pts), np.std(pts)) for i in range(150)])
+    plt.plot([norm.pdf(i + .5, np.mean(pts), np.std(sample)) for i in range(150)])
+    plt.plot(np.bincount(sample) / num)
+    plt.plot(smooth(np.bincount(pts) / tot_games))
+    plt.show()
+
+
 if __name__ == '__main__':
     vals = np.array([0, 0, 0, 1, 2, 3, 4, 5, 6, 7])
-    threes_all, s, opp_pct, own_pct = get_play_pcts('UTA')
+    threes_all, s, opp_pct, own_pct = get_play_pcts('BRK')
     tot_games = len(threes_all[0])
     # jazz = poss_pct(own_pct) - poss_pct(opp_pct)
     # plot_outcomes(own_pct)
     # plot_points(threes_all)
+
     pts = np.array(threes_all).T @ vals
     print(np.std(poss_pct(own_pct, pace=np.sum(s[10:] / tot_games)/2)))
     print(np.std(pts))
     print(np.std(weibull_by_pts(np.mean(pts))))
+
+    # plot_cdf()
+

@@ -9,9 +9,14 @@ from core.itemselects import *
 from core.psl import PlayerStatLine
 from core.teamcodes import *
 
+
+# This file contains classes and methods to look up occurences in the play index
+# e.g., "When's the last time 6 players scored 20+ points in the same game?"
+
 t = time()
 
 
+# Look up player number (pnum) corresponding to a player on a team's roster (e.g. Nic Claxton = 3, Cam Thomas = 5)
 def getpnum(tm: str, yr: str):
     path = PurePath('..', 'core', 'data', abbrtocode[tm], 'season', yr)
     pnumlist = {}
@@ -25,6 +30,8 @@ def getpnum(tm: str, yr: str):
     return pnumlist
 
 
+# Highly flexible function to input queries with certain constratints
+# TODO: implement functionality for all arguments
 def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', seasonrange: Tuple[int] = (1947, 2021),
            league: str = 'NBA', gametype: str = 'reg', gameteam: str = '', ndup = True,
            gamenumtype: str = 'all', gamenumrange: Tuple[int] = (1, 100),
@@ -82,17 +89,22 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
     l = []
     full_quarter_search = 'fq' in kwargs and kwargs.get('fq')
 
+    # Loop through years applicable to query
     for yr0 in seasonrange:
 
         if yr0 != 2021:
             continue
 
         yr = str(yr0)
+
+        # Loop through teams who played in the given year
         for team in nameyears:
             if yr not in nameyears[team]:
                 continue
             if gameteam != 'team' and gameteam != '':
                 continue
+
+            # Look up and loop through team's games by retrieving compressed files
             teampath = PurePath('..', 'core', 'data', team, 'season', yr, 'boxscores')
             ownpnumlist = getpnum(team, yr)
             opppnumlist = {}
@@ -114,14 +126,19 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
                     raise ValueError('Desired gamenumtype not yet implemented')
                 p_num = 0  # Determines if player is starting based on if they're one of the first 5
                 valgame = True
+
+                # Read through compressed file and check stat lines against query
                 while True:
                     try:
                         f.seek(ct)
                         g0 = [i for i in f.read(1)][0]
                         if g0 == 1:
+                            # Game header (teams, date, etc.)
                             game = gameobj
                             game.game = [1] + [i for i in f.read(27)]
                             select.resetgame(game)
+
+                            # Check if game fits criteria (e.g. "Are the Nets playing?") using user-provided functions
                             if not all(func(gameobj) for func in gamefilterlist):
                                 valgame = False
                                 break
@@ -132,12 +149,15 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
                             p_num = 0
                             continue
                         elif g0 == 0:
+                            # Game body (e.g. individual statlines)
                             game = [0] + [i for i in f.read(22)]
                             ct += 23
                             psl.stats = game
                             gamenum[psl.name()] += 1
                             psl.is_start = 1 if p_num < 5 else 0
                             p_num += 1
+
+                            # Check against user-provided criteria fro inclusion
                             if gamenumtype == 'all':
                                 pass
                             elif gamenumtype == 'tmszn' and gamenum['team'] < gamenumrange[0]:
@@ -149,6 +169,7 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
                             if select.checkline(psl) and not full_quarter_search:
                                 l.append(select.lineoutput(psl))
                         elif g0 == 3:
+                            # Switch to opponent's statlines
                             if ndup:
                                 break
                             p_num = 0
@@ -173,6 +194,7 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
                             # print(cur_fq)
                             ct += 3
                         else:
+                            # Error found in file
                             print(teampath / gamefile)
                             print(gamefile)
                             print(g0)
@@ -184,6 +206,8 @@ def lookup(mode: str = 'single', sortbydir: str = 'd', sortbycat: str = 'PTS', s
                     if ct > 100000:
                         break
                 f.close()
+
+                # Append games which meet criteria
                 if valgame and select.checkgame():
                     l.append(select.output())
 

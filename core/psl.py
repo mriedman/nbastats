@@ -1,3 +1,4 @@
+# Class parsing information about games (date, time, teams, score, etc.) from compressed file
 class GameHead(object):
     def __init__(self, gamehead, pnum1, pnum2):
         self.game = gamehead
@@ -30,6 +31,7 @@ class GameHead(object):
         return self.tm1score() - self.tm2score()
 
 
+# Class parsing player state line (basic box score stats) from compressed file
 class PlayerStatLine(object):
     '''class FGpct(object):
         def __init__(self, fgm, fga, fgpct):
